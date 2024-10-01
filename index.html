@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responsive Invoice Maker</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 10px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 100%;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            font-size: 14px;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            transition: background-color 0.3s;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #total {
+            font-weight: bold;
+            text-align: right;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        .header-info {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .header-info div {
+            flex: 1 1 200px;
+            margin-bottom: 10px;
+        }
+        .header-info input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .header-info label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .action-buttons {
+            margin-top: 20px;
+            text-align: center;
+        }
+        @media screen and (max-width: 600px) {
+            table, thead, tbody, th, td, tr {
+                display: block;
+            }
+            thead tr {
+                position: absolute;
+                top: -9999px;
+                left: -9999px;
+            }
+            tr {
+                margin-bottom: 10px;
+            }
+            td {
+                border: none;
+                position: relative;
+                padding-left: 50%;
+            }
+            td:before {
+                position: absolute;
+                top: 6px;
+                left: 6px;
+                width: 45%;
+                padding-right: 10px;
+                white-space: nowrap;
+                content: attr(data-label);
+                font-weight: bold;
+            }
+            .header-info {
+                flex-direction: column;
+            }
+            .header-info div {
+                margin-right: 0;
+            }
+        }
+        @media print {
+            .action-buttons, input[type="number"], input[type="text"] {
+                display: none;
+            }
+            body, .container {
+                margin: 0;
+                padding: 0;
+                background: white;
+            }
+            td, th {
+                padding: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="invoice">
+        <h1>Invoice</h1>
+        <div class="header-info">
+            <div>
+                <label for="customerName">Customer Name:</label>
+                <input type="text" id="customerName" required>
+            </div>
+            <div>
+                <label for="invoiceDate">Date:</label>
+                <input type="date" id="invoiceDate" required>
+            </div>
+        </div>
+        <form id="invoiceForm">
+            <table>
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Description</th>
+                        <th>Unit</th>
+                        <th>Qty</th>
+                        <th>CTN</th>
+                        <th>Unit Price</th>
+                        <th>Amount</th>
+                        <th>CTN No</th>
+                    </tr>
+                </thead>
+                <tbody id="invoiceItems">
+                    <!-- Items will be added here dynamically -->
+                </tbody>
+            </table>
+            <div id="total"></div>
+        </form>
+    </div>
+    <div class="action-buttons">
+        <button type="button" onclick="addItem()">Add Item</button>
+        <button type="button" onclick="generateInvoice()">Generate Invoice</button>
+        <button type="button" onclick="saveAsPDF()">Save as PDF</button>
+    </div>
+
+    <script>
+        let itemCount = 0;
+
+        function addItem() {
+            itemCount++;
+            const newRow = document.createElement('tr');
+            newRow.innerHTML = `
+                <td data-label="No">${itemCount}</td>
+                <td data-label="Description"><input type="text" name="desc${itemCount}" required></td>
+                <td data-label="Unit"><input type="text" name="unit${itemCount}" required></td>
+                <td data-label="Qty"><input type="number" name="qty${itemCount}" required></td>
+                <td data-label="CTN"><input type="number" name="ctn${itemCount}" required></td>
+                <td data-label="Unit Price"><input type="number" name="price${itemCount}" required></td>
+                <td data-label="Amount"><input type="number" name="amount${itemCount}" readonly></td>
+                <td data-label="CTN No"><input type="text" name="ctnNo${itemCount}"></td>
+            `;
+            document.getElementById('invoiceItems').appendChild(newRow);
+
+            const qtyInput = newRow.querySelector(`input[name="qty${itemCount}"]`);
+            const priceInput = newRow.querySelector(`input[name="price${itemCount}"]`);
+
+            qtyInput.addEventListener('input', () => calculateAmount(itemCount));
+            priceInput.addEventListener('input', () => calculateAmount(itemCount));
+        }
+
+        function calculateAmount(index) {
+            const qty = document.querySelector(`input[name="qty${index}"]`).value;
+            const price = document.querySelector(`input[name="price${index}"]`).value;
+            const amount = qty * price;
+            document.querySelector(`input[name="amount${index}"]`).value = amount.toFixed(2);
+        }
+
+        function generateInvoice() {
+            let total = 0;
+            const items = [];
+
+            for (let i = 1; i <= itemCount; i++) {
+                const amount = parseFloat(document.querySelector(`input[name="amount${i}"]`).value) || 0;
+                total += amount;
+                
+                const row = document.querySelector(`input[name="desc${i}"]`).closest('tr');
+                const cells = row.querySelectorAll('td');
+                cells.forEach(cell => {
+                    const input = cell.querySelector('input');
+                    if (input) {
+                        cell.textContent = input.value;
+                    }
+                });
+            }
+
+            document.getElementById('total').textContent = `Total: ${total.toFixed(2)}฿ THB`;
+        }
+
+        function saveAsPDF() {
+            const customerName = document.getElementById('customerName').value;
+            const invoiceDate = document.getElementById('invoiceDate').value;
+            
+            if (!customerName || !invoiceDate) {
+                alert('Please fill in the customer name and date before saving as PDF.');
+                return;
+            }
+
+            const element = document.getElementById('invoice');
+            const opt = {
+                margin: 10,
+                filename: `invoice_${customerName}_${invoiceDate}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            // Generate and save PDF
+            html2pdf().set(opt).from(element).save();
+        }
+
+        // Add the first item row when the page loads
+        addItem();
+    </script>
+</body>
+</html>
