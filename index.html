@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Responsive Invoice Maker</title>
+    <title>Invoice Maker by Gokul</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
             line-height: 1.6;
             margin: 0;
-            padding: 10px;
+            padding: 20px;
             background-color: #f4f4f4;
         }
         .container {
-            max-width: 100%;
+            
             margin: auto;
             background: white;
             padding: 20px;
@@ -24,7 +24,6 @@
             text-align: center;
             color: #333;
             margin-bottom: 20px;
-            font-size: 24px;
         }
         table {
             width: 100%;
@@ -35,7 +34,7 @@
             border: 1px solid #ddd;
             padding: 8px;
             text-align: left;
-            font-size: 14px;
+            font-size: 12px;
         }
         th {
             background-color: #f2f2f2;
@@ -48,9 +47,7 @@
             border: none;
             cursor: pointer;
             margin-right: 10px;
-            margin-bottom: 10px;
             transition: background-color 0.3s;
-            font-size: 14px;
         }
         button:hover {
             background-color: #45a049;
@@ -58,7 +55,7 @@
         #total {
             font-weight: bold;
             text-align: right;
-            font-size: 16px;
+            font-size: 14px;
             margin-top: 20px;
         }
         .header-info {
@@ -67,16 +64,11 @@
             justify-content: space-between;
             margin-bottom: 20px;
         }
-        .header-info div {
-            flex: 1 1 200px;
-            margin-bottom: 10px;
-        }
         .header-info input {
-            width: 100%;
-            padding: 8px;
+            padding: 5px;
+            width: 200px;
             border: 1px solid #ddd;
             border-radius: 4px;
-            font-size: 14px;
         }
         .header-info label {
             display: block;
@@ -88,37 +80,26 @@
             text-align: center;
         }
         @media screen and (max-width: 600px) {
-            table, thead, tbody, th, td, tr {
-                display: block;
+            .container {
+                padding: 10px;
             }
-            thead tr {
-                position: absolute;
-                top: -9999px;
-                left: -9999px;
+            table {
+                font-size: 10px;
             }
-            tr {
-                margin-bottom: 10px;
-            }
-            td {
-                border: none;
-                position: relative;
-                padding-left: 50%;
-            }
-            td:before {
-                position: absolute;
-                top: 6px;
-                left: 6px;
-                width: 45%;
-                padding-right: 10px;
-                white-space: nowrap;
-                content: attr(data-label);
-                font-weight: bold;
+            th, td {
+                padding: 5px;
             }
             .header-info {
                 flex-direction: column;
             }
-            .header-info div {
-                margin-right: 0;
+            .header-info input {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+            .action-buttons button {
+                display: block;
+                width: 100%;
+                margin-bottom: 10px;
             }
         }
         @media print {
@@ -174,6 +155,7 @@
         <button type="button" onclick="addItem()">Add Item</button>
         <button type="button" onclick="generateInvoice()">Generate Invoice</button>
         <button type="button" onclick="saveAsPDF()">Save as PDF</button>
+        <button type="button" onclick="attachInvoice()">Attach Invoice</button>
     </div>
 
     <script>
@@ -183,14 +165,14 @@
             itemCount++;
             const newRow = document.createElement('tr');
             newRow.innerHTML = `
-                <td data-label="No">${itemCount}</td>
-                <td data-label="Description"><input type="text" name="desc${itemCount}" required></td>
-                <td data-label="Unit"><input type="text" name="unit${itemCount}" required></td>
-                <td data-label="Qty"><input type="number" name="qty${itemCount}" required></td>
-                <td data-label="CTN"><input type="number" name="ctn${itemCount}" required></td>
-                <td data-label="Unit Price"><input type="number" name="price${itemCount}" required></td>
-                <td data-label="Amount"><input type="number" name="amount${itemCount}" readonly></td>
-                <td data-label="CTN No"><input type="text" name="ctnNo${itemCount}"></td>
+                <td>${itemCount}</td>
+                <td><input type="text" name="desc${itemCount}" required></td>
+                <td><input type="text" name="unit${itemCount}" required></td>
+                <td><input type="number" name="qty${itemCount}" required></td>
+                <td><input type="number" name="ctn${itemCount}" required></td>
+                <td><input type="number" name="price${itemCount}" required></td>
+                <td><input type="number" name="amount${itemCount}" readonly></td>
+                <td><input type="text" name="ctnNo${itemCount}"></td>
             `;
             document.getElementById('invoiceItems').appendChild(newRow);
 
@@ -249,6 +231,38 @@
 
             // Generate and save PDF
             html2pdf().set(opt).from(element).save();
+        }
+
+        async function attachInvoice() {
+            try {
+                const response = await fetch('https://hebbkx1anhila5yf.public.blob.vercel-storage.com/snippet-y9s1jqLzrUVwHrx0enz6QuptgFPbh9.txt');
+                const attachmentContent = await response.text();
+                
+                const customerName = document.getElementById('customerName').value;
+                const invoiceDate = document.getElementById('invoiceDate').value;
+                
+                if (!customerName || !invoiceDate) {
+                    alert('Please fill in the customer name and date before attaching the invoice.');
+                    return;
+                }
+
+                const invoiceContent = document.getElementById('invoice').innerHTML;
+                const combinedContent = `${invoiceContent}\n\nAttachment:\n${attachmentContent}`;
+
+                const blob = new Blob([combinedContent], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `invoice_with_attachment_${customerName}_${invoiceDate}.html`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error('Error attaching invoice:', error);
+                alert('An error occurred while attaching the invoice. Please try again.');
+            }
         }
 
         // Add the first item row when the page loads
