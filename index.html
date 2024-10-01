@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Professional Invoice Maker</title>
+    <title>Gokul Invoice Maker</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         :root {
@@ -22,12 +22,22 @@
             color: var(--text-color);
         }
         .container {
-            max-width: 210mm;
+            
             margin: auto;
             background: white;
             padding: 30px;
             box-shadow: 0 0 20px rgba(0,0,0,0.1);
             border-radius: 8px;
+        }
+        .logo-container {
+            position: absolute;
+            top: 30px;
+            left: 30px;
+        }
+        #logoPreview {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
         }
         h1 {
             text-align: center;
@@ -36,6 +46,7 @@
             font-size: 28px;
             text-transform: uppercase;
             letter-spacing: 2px;
+            padding-top: 70px;
         }
         .header-info {
             display: grid;
@@ -111,11 +122,6 @@
         .logo-upload {
             margin-bottom: 20px;
         }
-        #logoPreview {
-            max-width: 200px;
-            max-height: 100px;
-            margin-top: 10px;
-        }
         .custom-file-upload {
             border: 1px solid #ccc;
             display: inline-block;
@@ -126,6 +132,9 @@
         }
         #logoUpload {
             display: none;
+        }
+        .page-break {
+            page-break-after: always;
         }
         @media screen and (max-width: 768px) {
             .header-info {
@@ -149,12 +158,14 @@
 </head>
 <body>
     <div class="container" id="invoice">
+        <div class="logo-container">
+            <img id="logoPreview" alt="Logo Preview" style="display: none;">
+        </div>
         <div class="logo-upload">
             <label for="logoUpload" class="custom-file-upload">
                 Upload Logo
             </label>
             <input type="file" id="logoUpload" accept="image/*" onchange="previewLogo(event)">
-            <img id="logoPreview" alt="Logo Preview" style="display: none;">
         </div>
         <h1>Invoice</h1>
         <div class="header-info">
@@ -228,7 +239,7 @@
                 <td><input type="number" name="ctn${itemCount}" required></td>
                 <td><input type="number" name="qty${itemCount}" readonly></td>
                 <td><input type="number" name="price${itemCount}" required></td>
-                <td><input type="number" name="amount${itemCount}" readonly></td>
+                <td><input type="text" name="amount${itemCount}" readonly></td>
                 <td><input type="text" name="ctnNo${itemCount}"></td>
             `;
             document.getElementById('invoiceItems').appendChild(newRow);
@@ -242,6 +253,10 @@
             priceInput.addEventListener('input', () => calculateQtyAndAmount(itemCount));
         }
 
+        function formatCurrency(value) {
+            return '฿ ' + value.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+        }
+
         function calculateQtyAndAmount(index) {
             const unit = parseFloat(document.querySelector(`input[name="unit${index}"]`).value) || 0;
             const ctn = parseFloat(document.querySelector(`input[name="ctn${index}"]`).value) || 0;
@@ -251,7 +266,7 @@
             const amount = qty * price;
             
             document.querySelector(`input[name="qty${index}"]`).value = qty.toFixed(2);
-            document.querySelector(`input[name="amount${index}"]`).value = amount.toFixed(2);
+            document.querySelector(`input[name="amount${index}"]`).value = formatCurrency(amount);
         }
 
         function generateInvoice() {
@@ -259,7 +274,7 @@
             const items = [];
 
             for (let i = 1; i <= itemCount; i++) {
-                const amount = parseFloat(document.querySelector(`input[name="amount${i}"]`).value) || 0;
+                const amount = parseFloat(document.querySelector(`input[name="amount${i}"]`).value.replace(/[^\d.-]/g, '')) || 0;
                 total += amount;
                 
                 const row = document.querySelector(`input[name="desc${i}"]`).closest('tr');
@@ -267,12 +282,16 @@
                 cells.forEach(cell => {
                     const input = cell.querySelector('input');
                     if (input) {
-                        cell.textContent = input.value;
+                        if (input.name.startsWith('price')) {
+                            cell.textContent = formatCurrency(parseFloat(input.value));
+                        } else {
+                            cell.textContent = input.value;
+                        }
                     }
                 });
             }
 
-            document.getElementById('total').textContent = `Total: ${total.toFixed(2)}฿ THB`;
+            document.getElementById('total').textContent = `Total: ${formatCurrency(total)} THB`;
         }
 
         function saveAsPDF() {
@@ -294,11 +313,21 @@
                 filename: `invoice_${customerName}_${invoiceDate}.pdf`,
                 image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { scale: 2 },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
             };
 
             // Generate and save PDF
-            html2pdf().set(opt).from(element).save().then(() => {
+            html2pdf().set(opt).from(element).toPdf().get('pdf').then(function (pdf) {
+                var totalPages = pdf.internal.getNumberOfPages();
+
+                for (var i = 1; i <= totalPages; i++) {
+                    pdf.setPage(i);
+                    pdf.setFontSize(10);
+                    pdf.setTextColor(150);
+                    pdf.text('Page ' + i + ' of ' + totalPages, pdf.internal.pageSize.getWidth() - 100, pdf.internal.pageSize.getHeight() - 30);
+                }
+            }).save().then(() => {
                 // Show elements again after PDF generation
                 document.querySelector('.custom-file-upload').style.display = 'inline-block';
                 document.getElementById('logoUpload').style.display = 'none'; // Keep this hidden
