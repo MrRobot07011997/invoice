@@ -282,20 +282,20 @@
         }
 
         function formatCurrency(value) {
-            return `${currencySymbol} ${value.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}`;
-        }
+    return `${currencySymbol} ${value.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
+}
 
-        function calculateQtyAndAmount(index) {
-            const unit = parseFloat(document.querySelector(`input[name="unit${index}"]`).value) || 0;
-            const ctn = parseFloat(document.querySelector(`input[name="ctn${index}"]`).value) || 0;
-            const price = parseFloat(document.querySelector(`input[name="price${index}"]`).value) || 0;
-            
-            const qty = unit * ctn;
-            const amount = qty * price;
-            
-            document.querySelector(`input[name="qty${index}"]`).value = qty.toFixed(2);
-            document.querySelector(`input[name="amount${index}"]`).value = formatCurrency(amount);
-        }
+function calculateQtyAndAmount(index) {
+    const unit = parseFloat(document.querySelector(`input[name="unit${index}"]`).value) || 0;
+    const ctn = parseFloat(document.querySelector(`input[name="ctn${index}"]`).value) || 0;
+    const price = parseFloat(document.querySelector(`input[name="price${index}"]`).value) || 0;
+    
+    const qty = Math.round(unit * ctn);
+    const amount = qty * price;
+    
+    document.querySelector(`input[name="qty${index}"]`).value = qty.toString();
+    document.querySelector(`input[name="amount${index}"]`).value = formatCurrency(amount);
+}
 
         function generateInvoice() {
             let total = 0;
