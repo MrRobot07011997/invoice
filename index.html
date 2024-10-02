@@ -26,6 +26,7 @@
             padding: 20px;
             margin: auto;
             max-width: 800px;
+            width: 100%;
         }
 
         h1 {
@@ -37,12 +38,14 @@
 
         .header-info {
             display: flex;
+            flex-wrap: wrap;
             justify-content: space-between;
             margin-bottom: 20px;
         }
 
         .info-left, .info-right {
-            width: 48%;
+            width: 100%;
+            margin-bottom: 15px;
         }
 
         label {
@@ -86,10 +89,6 @@
             background-color: #f9f9f9;
         }
 
-        td:hover {
-            background-color: #e9ecef;
-        }
-
         .action-buttons {
             text-align: center;
             margin-top: 20px;
@@ -131,12 +130,40 @@
             margin-bottom: 10px;
         }
 
-        @media (max-width: 600px) {
-            .header-info {
-                flex-direction: column;
-            }
+        /* Responsive styles */
+        @media (min-width: 768px) {
             .info-left, .info-right {
+                width: 48%;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .container {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
+
+            table {
+                font-size: 0.9em;
+            }
+
+            .action-buttons button {
                 width: 100%;
+                margin: 5px 0;
+            }
+        }
+
+        /* Styles for table scrolling on mobile */
+        @media (max-width: 600px) {
+            .table-container {
+                overflow-x: auto;
+            }
+
+            table {
+                min-width: 600px;
             }
         }
 
@@ -215,23 +242,25 @@
         </div>
         <div id="currencyDisplay"></div>
         <form id="invoiceForm">
-            <table>
-                <thead>
-                    <tr>
-                        <th>No</th>
-                        <th>Description</th>
-                        <th>Unit</th>
-                        <th>CTN</th>
-                        <th>QTY</th>
-                        <th>Unit Price</th>
-                        <th>Amount</th>
-                        <th>CTN No</th>
-                    </tr>
-                </thead>
-                <tbody id="invoiceItems">
-                    <!-- Items will be added here dynamically -->
-                </tbody>
-            </table>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Description</th>
+                            <th>Unit</th>
+                            <th>CTN</th>
+                            <th>QTY</th>
+                            <th>Unit Price</th>
+                            <th>Amount</th>
+                            <th>CTN No</th>
+                        </tr>
+                    </thead>
+                    <tbody id="invoiceItems">
+                        <!-- Items will be added here dynamically -->
+                    </tbody>
+                </table>
+            </div>
             <div id="total"></div>
         </form>
     </div>
@@ -243,6 +272,7 @@
         <button type="button" onclick="clearInvoice()" class="clear">Clear</button>
     </div>
     <script>
+        // ... (The JavaScript code remains the same as in the original version)
         let itemCount = 0;
         let currencySymbol = '฿';
         let currencyName = 'Thai Baht';
